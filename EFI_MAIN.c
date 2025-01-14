@@ -2,9 +2,55 @@
 #include <efilib.h>
 #define ENTRY_POINT efi_main
 
-#define MEMORY_START 0x00000000
-#define MEMORY_END   0x40000000
-#define SIGNATURE {0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1}
+
+
+
+
+
+
+
+
+
+#define SEARCH_BASE (UINT8*)0x0     // Startadresse
+#define SEARCH_SIZE 0x100000000      // 4GB
+
+const UINT8 Signature2[] = {
+    0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
+    0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x10, 0x01, 0x00, 0x00, 0x0E, 0x1F, 0xBA, 0x0E,
+    0x00, 0xB4, 0x09, 0xCD, 0x21, 0xB8, 0x01, 0x4C,
+    0xCD, 0x21, 0x54, 0x68, 0x69, 0x73, 0x20, 0x70,
+    0x72, 0x6F, 0x67, 0x72, 0x61, 0x6D, 0x20, 0x63,
+    0x61, 0x6E, 0x6E, 0x6F, 0x74, 0x20, 0x62, 0x65,
+    0x20, 0x72, 0x75, 0x6E, 0x20, 0x69, 0x6E, 0x20,
+    0x44, 0x4F, 0x53, 0x20, 0x6D, 0x6F, 0x64, 0x65
+};
+
+#define SIGNATURE_SIZE (sizeof(Signature2))
+
+void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
+    for (UINT8* ptr = MemoryBase; ptr < MemoryBase + MemorySize - SignatureSize; ++ptr) {
+        if (CompareMem(ptr, Signature, SignatureSize) == 0) {
+            *FoundAddress = ptr;  // Set the found address
+            return;  // Signature found, exit function
+        }
+    }
+    *FoundAddress = NULL;  // No signature found, set found address to NULL
+}
+
+
+
+
+
+
+
+
+
+
 
 
 static const EFI_GUID ProtocolGuid
@@ -29,32 +75,23 @@ typedef EFI_STATUS (EFIAPI *EFI_EXIT_BOOT_SERVICES)(EFI_HANDLE, UINTN);
 static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 
-// Winload.exe --> OslpLogOsLaunch
-static void winloadSignature(void) {
-    static UINT8 signature[] = SIGNATURE;
-    static UINTN sigLength = sizeof(signature);
-    UINT8 *current = (UINT8 *)MEMORY_START;
-    UINT8 *end = (UINT8 *)MEMORY_END - sigLength;
 
-    BOOLEAN signatureFound = FALSE;
-
-    while (current <= end) {
-        UINTN i = 0;
-        while (i < sigLength && current[i] == signature[i]) {
-            i++;
-        }
-        if (i == sigLength) {
-            signatureFound = TRUE;
-            ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
-            break;
-        }
-        current++;
-    }
-}
 
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
-    winloadSignature();
+    
+
+
+    FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &foundAddress);
+    
+    if (foundAddress != NULL) {
+        ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
+    } else {
+        ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
+    }
+
+
+	
     return OriginalExitBootServices(ImageHandle, MapKey);
 }
 
