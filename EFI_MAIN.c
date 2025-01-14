@@ -79,7 +79,7 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
-    
+    UINT8* foundAddress = NULL;
 
 
     FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &foundAddress);
