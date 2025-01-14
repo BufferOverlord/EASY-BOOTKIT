@@ -30,7 +30,7 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 
 // Winload.exe --> OslpLogOsLaunch
-static EFIAPI void winloadSignature(void) {
+static void winloadSignature(void) {
     static UINT8 signature[] = SIGNATURE;
     static UINTN sigLength = sizeof(signature);
     UINT8 *current = (UINT8 *)MEMORY_START;
