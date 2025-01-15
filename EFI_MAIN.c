@@ -50,13 +50,22 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
 UINT8* FoundAddress = NULL;
+    EFI_INPUT_KEY Key;
     FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &FoundAddress);
 
     if (FoundAddress != NULL) {
-        Print(L"Signature found at address: 0x%p\n", FoundAddress);
+        Print(L"Signature found at address: %p\n", FoundAddress);
     } else {
         Print(L"Signature not found in the specified memory range.\n");
     }
+
+        GlobalSystemTable->ConOut->OutputString(GlobalSystemTable->ConOut, L"Press any key to continue...\r\n");
+
+    while (GlobalSystemTable->ConIn->ReadKeyStroke(GlobalSystemTable->ConIn, &Key) == EFI_NOT_READY) {
+        
+    }
+    
+    GlobalSystemTable->ConOut->OutputString(GlobalSystemTable->ConOut, L"Key pressed! Exiting...\r\n");
 
     return OriginalExitBootServices(ImageHandle, MapKey);
 }
