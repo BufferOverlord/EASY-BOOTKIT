@@ -4,12 +4,9 @@
 
 
 
-UINT8 *GlobalSignature;  // Global pointer til signaturen
-UINTN GlobalSignatureSize;  // Global størrelse på signaturen
-
 EFI_STATUS
 EFIAPI
-SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable) {
+SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature, UINTN SignatureSize) {
     EFI_STATUS Status;
     EFI_MEMORY_DESCRIPTOR *MemoryMap;
     EFI_MEMORY_DESCRIPTOR *MemoryDescriptor;
@@ -47,9 +44,9 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable) {
         UINTN MemSize = MemoryDescriptor->NumberOfPages * EFI_PAGE_SIZE;
 
         if (MemStart < MaxSearchSize && MemType != EfiConventionalMemory && MemType != EfiBootServicesData) {
-            for (UINTN Offset = 0; Offset < MemSize - GlobalSignatureSize; Offset++) {
+            for (UINTN Offset = 0; Offset < MemSize - SignatureSize; Offset++) {
                 UINT8 *Addr = (UINT8 *)(MemStart + Offset);
-                if (CompareMem(Addr, GlobalSignature, GlobalSignatureSize) == 0) {
+                if (CompareMem(Addr, Signature, SignatureSize) == 0) {
                     FreePool(MemoryMap);
                     return EFI_SUCCESS;
                 }
@@ -62,7 +59,6 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable) {
     FreePool(MemoryMap);
     return EFI_NOT_FOUND;
 }
-
 
 
 
