@@ -4,42 +4,60 @@
 
 
 
+EFI_STATUS
+EFIAPI
+SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature, UINTN SignatureSize) {
+    EFI_STATUS Status;
+    EFI_MEMORY_DESCRIPTOR *MemoryMap;
+    EFI_MEMORY_DESCRIPTOR *MemoryDescriptor;
+    UINTN MemoryMapSize = 0;
+    UINTN MapKey;
+    UINTN DescriptorSize;
+    UINT32 DescriptorVersion;
+    UINTN Index;
+    UINTN MaxSearchSize = 2 * 1024 * 1024 * 1024;
 
-
-
-
-
-
-
-#define SEARCH_BASE (UINT8*)0x0     // Startadresse
-#define SEARCH_SIZE 0x100000000      // 4GB
-
-const UINT8 Signature2[] = {
-    0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
-    0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x10, 0x01, 0x00, 0x00, 0x0E, 0x1F, 0xBA, 0x0E,
-    0x00, 0xB4, 0x09, 0xCD, 0x21, 0xB8, 0x01, 0x4C,
-    0xCD, 0x21, 0x54, 0x68, 0x69, 0x73, 0x20, 0x70,
-    0x72, 0x6F, 0x67, 0x72, 0x61, 0x6D, 0x20, 0x63,
-    0x61, 0x6E, 0x6E, 0x6F, 0x74, 0x20, 0x62, 0x65,
-    0x20, 0x72, 0x75, 0x6E, 0x20, 0x69, 0x6E, 0x20,
-    0x44, 0x4F, 0x53, 0x20, 0x6D, 0x6F, 0x64, 0x65
-};
-
-#define SIGNATURE_SIZE (sizeof(Signature2))
-
-void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
-    for (UINT8* ptr = MemoryBase; ptr < MemoryBase + MemorySize - SignatureSize; ++ptr) {
-        if (CompareMem(ptr, Signature, SignatureSize) == 0) {
-            *FoundAddress = ptr;  // Set the found address
-            return;  // Signature found, exit function
-        }
+    Status = SystemTable->BootServices->GetMemoryMap(
+        &MemoryMapSize, NULL, &MapKey, &DescriptorSize, &DescriptorVersion);
+    
+    if (EFI_ERROR(Status)) {
+        return Status;
     }
-    *FoundAddress = NULL;  // No signature found, set found address to NULL
+
+    MemoryMap = AllocatePool(MemoryMapSize);
+    if (MemoryMap == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    Status = SystemTable->BootServices->GetMemoryMap(
+        &MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
+    
+    if (EFI_ERROR(Status)) {
+        FreePool(MemoryMap);
+        return Status;
+    }
+
+    MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR *)MemoryMap;
+    for (Index = 0; Index < MemoryMapSize / DescriptorSize; Index++) {
+        EFI_MEMORY_TYPE MemType = MemoryDescriptor->Type;
+        EFI_PHYSICAL_ADDRESS MemStart = MemoryDescriptor->PhysicalStart;
+        UINTN MemSize = MemoryDescriptor->NumberOfPages * EFI_PAGE_SIZE;
+
+        if (MemStart < MaxSearchSize && MemType != EfiConventionalMemory && MemType != EfiBootServicesData) {
+            for (UINTN Offset = 0; Offset < MemSize - SignatureSize; Offset++) {
+                UINT8 *Addr = (UINT8 *)(MemStart + Offset);
+                if (CompareMem(Addr, Signature, SignatureSize) == 0) {
+                    FreePool(MemoryMap);
+                    return EFI_SUCCESS;
+                }
+            }
+        }
+
+        MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryDescriptor + DescriptorSize);
+    }
+
+    FreePool(MemoryMap);
+    return EFI_NOT_FOUND;
 }
 
 
@@ -79,16 +97,19 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
-    UINT8* foundAddress = NULL;
+    EFI_STATUS Status;
+    UINT8 Signature[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    UINTN SignatureSize = sizeof(Signature);
 
+    Status = SearchMemorySignatureInFirst2GB(SystemTable, Signature, SignatureSize);
 
-    FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &foundAddress);
-    
-    if (foundAddress != NULL) {
-        ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
+    if (EFI_ERROR(Status)) {
+        SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
     } else {
-        ST->ConOut->SetAttribute(ST->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
+        SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
     }
+
+
 
 
 	
