@@ -95,9 +95,6 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     }
     LoadedImage->Unload = (EFI_IMAGE_UNLOAD)efi_unload;
 
-
-
-    ST->ConOut->ClearScreen(ST->ConOut);
     OriginalExitBootServices = gBS->ExitBootServices;
     gBS->ExitBootServices = HookedExitBootServices;
     return EFI_SUCCESS;
