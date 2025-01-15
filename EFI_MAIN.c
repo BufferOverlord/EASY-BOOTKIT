@@ -13,11 +13,11 @@ const UINT8 Signature[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24
 void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
     for (UINT8* ptr = MemoryBase; ptr < MemoryBase + MemorySize - SignatureSize; ++ptr) {
         if (CompareMem(ptr, Signature, SignatureSize) == 0) {
-            *FoundAddress = ptr;  // Angiv fundet adresse
-            return;               // Signatur fundet
+            *FoundAddress = ptr;  
+            return;               
         }
     }
-    *FoundAddress = NULL;  // Ingen signatur fundet
+    *FoundAddress = NULL;
 }
 
 
@@ -31,9 +31,6 @@ static EFI_STATUS EFIAPI efi_unload(IN EFI_HANDLE ImageHandle) {
 
     return EFI_ACCESS_DENIED;
 }
-
-
-
 
 
 typedef struct _DummyProtocalData {
