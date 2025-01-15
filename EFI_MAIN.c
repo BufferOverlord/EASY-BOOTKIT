@@ -4,6 +4,25 @@
 EFI_SYSTEM_TABLE* GlobalSystemTable = NULL;
 
 
+#define SEARCH_BASE (UINT8*)0x9       // Startadresse
+#define SEARCH_SIZE 0x100000000
+const UINT8 Signature[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1 };
+
+#define SIGNATURE_SIZE (sizeof(Signature2))
+
+void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
+    for (UINT8* ptr = MemoryBase; ptr < MemoryBase + MemorySize - SignatureSize; ++ptr) {
+        if (CompareMem(ptr, Signature, SignatureSize) == 0) {
+            *FoundAddress = ptr;  // Angiv fundet adresse
+            return;               // Signatur fundet
+        }
+    }
+    *FoundAddress = NULL;  // Ingen signatur fundet
+}
+
+
+
+
 static const EFI_GUID ProtocolGuid
 = { 0x1a32111a, 0xee4f, 0x1826, {0x4b, 0x1a, 0x40, 0xb7, 0xff, 0x7f, 0x00, 0xf5} };
 
@@ -30,13 +49,14 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
-    EFI_STATUS Status;
-    UINT8 Signature[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1 };
-    
-        GlobalSystemTable->ConOut->SetAttribute(GlobalSystemTable->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
-        GlobalSystemTable->ConOut->SetAttribute(GlobalSystemTable->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
+UINT8* FoundAddress = NULL;
+    FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &FoundAddress);
 
-
+    if (FoundAddress != NULL) {
+        Print(L"Signature found at address: 0x%p\n", FoundAddress);
+    } else {
+        Print(L"Signature not found in the specified memory range.\n");
+    }
 
     return OriginalExitBootServices(ImageHandle, MapKey);
 }
