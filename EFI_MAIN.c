@@ -93,7 +93,9 @@ static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 
 
-static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
+
+
+static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey, EFI_SYSTEM_TABLE *SystemTable) {
     gBS->ExitBootServices = OriginalExitBootServices;
     EFI_STATUS Status;
     UINT8 Signature[] = { 0xDE, 0xAD, 0xBE, 0xEF };
@@ -107,7 +109,8 @@ static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN Ma
         SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
     }
 
-
+    return OriginalExitBootServices(ImageHandle, MapKey);
+}
 
 
 	
