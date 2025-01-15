@@ -1,15 +1,16 @@
 #include <efi.h>
 #include <efilib.h>
 #define ENTRY_POINT efi_main
+EFI_SYSTEM_TABLE* GlobalSystemTable = NULL;
 
 
 
 EFI_STATUS
 EFIAPI
-SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature, UINTN SignatureSize) {
+SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE* SystemTable, UINT8* Signature, UINTN SignatureSize) {
     EFI_STATUS Status;
-    EFI_MEMORY_DESCRIPTOR *MemoryMap;
-    EFI_MEMORY_DESCRIPTOR *MemoryDescriptor;
+    EFI_MEMORY_DESCRIPTOR* MemoryMap;
+    EFI_MEMORY_DESCRIPTOR* MemoryDescriptor;
     UINTN MemoryMapSize = 0;
     UINTN MapKey;
     UINTN DescriptorSize;
@@ -19,7 +20,7 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature,
 
     Status = SystemTable->BootServices->GetMemoryMap(
         &MemoryMapSize, NULL, &MapKey, &DescriptorSize, &DescriptorVersion);
-    
+
     if (EFI_ERROR(Status)) {
         return Status;
     }
@@ -31,13 +32,13 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature,
 
     Status = SystemTable->BootServices->GetMemoryMap(
         &MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
-    
+
     if (EFI_ERROR(Status)) {
         FreePool(MemoryMap);
         return Status;
     }
 
-    MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR *)MemoryMap;
+    MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR*)MemoryMap;
     for (Index = 0; Index < MemoryMapSize / DescriptorSize; Index++) {
         EFI_MEMORY_TYPE MemType = MemoryDescriptor->Type;
         EFI_PHYSICAL_ADDRESS MemStart = MemoryDescriptor->PhysicalStart;
@@ -45,7 +46,7 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature,
 
         if (MemStart < MaxSearchSize && MemType != EfiConventionalMemory && MemType != EfiBootServicesData) {
             for (UINTN Offset = 0; Offset < MemSize - SignatureSize; Offset++) {
-                UINT8 *Addr = (UINT8 *)(MemStart + Offset);
+                UINT8* Addr = (UINT8*)(MemStart + Offset);
                 if (CompareMem(Addr, Signature, SignatureSize) == 0) {
                     FreePool(MemoryMap);
                     return EFI_SUCCESS;
@@ -53,7 +54,7 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature,
             }
         }
 
-        MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryDescriptor + DescriptorSize);
+        MemoryDescriptor = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)MemoryDescriptor + DescriptorSize);
     }
 
     FreePool(MemoryMap);
@@ -70,7 +71,7 @@ SearchMemorySignatureInFirst2GB(EFI_SYSTEM_TABLE *SystemTable, UINT8 *Signature,
 
 
 static const EFI_GUID ProtocolGuid
-	= { 0x1a32111a, 0xee4f, 0x1826, {0x4b, 0x1a, 0x40, 0xb7, 0xff, 0x7f, 0x00, 0xf5} };
+= { 0x1a32111a, 0xee4f, 0x1826, {0x4b, 0x1a, 0x40, 0xb7, 0xff, 0x7f, 0x00, 0xf5} };
 
 
 static EFI_STATUS EFIAPI efi_unload(IN EFI_HANDLE ImageHandle) {
@@ -82,72 +83,70 @@ static EFI_STATUS EFIAPI efi_unload(IN EFI_HANDLE ImageHandle) {
 
 
 
-typedef struct _DummyProtocalData{
-	UINTN blank;
+typedef struct _DummyProtocalData {
+    UINTN blank;
 } DummyProtocalData;
 
 
-typedef EFI_STATUS (EFIAPI *EFI_EXIT_BOOT_SERVICES)(EFI_HANDLE, UINTN);
+typedef EFI_STATUS(EFIAPI* EFI_EXIT_BOOT_SERVICES)(EFI_HANDLE, UINTN);
 static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
 
 
 
 
-
-
-static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey, EFI_SYSTEM_TABLE *SystemTable) {
+static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN MapKey) {
     gBS->ExitBootServices = OriginalExitBootServices;
     EFI_STATUS Status;
     UINT8 Signature[] = { 0xDE, 0xAD, 0xBE, 0xEF };
     UINTN SignatureSize = sizeof(Signature);
 
-    Status = SearchMemorySignatureInFirst2GB(SystemTable, Signature, SignatureSize);
+    Status = SearchMemorySignatureInFirst2GB(GlobalSystemTable, Signature, SignatureSize);
 
     if (EFI_ERROR(Status)) {
-        SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
-    } else {
-        SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
+        GlobalSystemTable->ConOut->SetAttribute(GlobalSystemTable->ConOut, EFI_BACKGROUND_RED | EFI_WHITE);
+    }
+    else {
+        GlobalSystemTable->ConOut->SetAttribute(GlobalSystemTable->ConOut, EFI_BACKGROUND_GREEN | EFI_WHITE);
     }
 
+
+
+
+
     return OriginalExitBootServices(ImageHandle, MapKey);
 }
 
-
-	
-    return OriginalExitBootServices(ImageHandle, MapKey);
-}
-
-EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-     InitializeLib(ImageHandle, SystemTable);
-    
-
-EFI_LOADED_IMAGE *LoadedImage = NULL;
-	EFI_STATUS status = BS->OpenProtocol(ImageHandle, &LoadedImageProtocol,
-										(void**)&LoadedImage, ImageHandle,
-										NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-
-	if (EFI_ERROR(status)) 
-	{
-		Print(L" Open protocol Failed: %d\n", status);
-		return status;
-	}
+EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable) {
+    InitializeLib(ImageHandle, SystemTable);
 
 
-		DummyProtocalData dummy = { 0 };
-	status = LibInstallProtocolInterfaces(
-	  &ImageHandle, &ProtocolGuid,
-	  &dummy, NULL);
+    EFI_LOADED_IMAGE* LoadedImage = NULL;
+    EFI_STATUS status = BS->OpenProtocol(ImageHandle, &LoadedImageProtocol,
+        (void**)&LoadedImage, ImageHandle,
+        NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
 
-	if (EFI_ERROR(status)) 
-	{
-		Print(L"interface create Failed: %d\n", status);
-		return status;
-	}
-                LoadedImage->Unload = (EFI_IMAGE_UNLOAD)efi_unload;
+    if (EFI_ERROR(status))
+    {
+        Print(L" Open protocol Failed: %d\n", status);
+        return status;
+    }
+
+
+    DummyProtocalData dummy = { 0 };
+    status = LibInstallProtocolInterfaces(
+        &ImageHandle, &ProtocolGuid,
+        &dummy, NULL);
+
+    if (EFI_ERROR(status))
+    {
+        Print(L"interface create Failed: %d\n", status);
+        return status;
+    }
+    LoadedImage->Unload = (EFI_IMAGE_UNLOAD)efi_unload;
 
 
 
-ST->ConOut->ClearScreen(ST->ConOut);
+    ST->ConOut->ClearScreen(ST->ConOut);
     OriginalExitBootServices = gBS->ExitBootServices;
     gBS->ExitBootServices = HookedExitBootServices;
     return EFI_SUCCESS;
