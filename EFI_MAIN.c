@@ -23,6 +23,9 @@ void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, 
 
 
 
+
+
+
 static const EFI_GUID ProtocolGuid
 = { 0x1a32111a, 0xee4f, 0x1826, {0x4b, 0x1a, 0x40, 0xb7, 0xff, 0x7f, 0x00, 0xf5} };
 
@@ -56,13 +59,10 @@ UINT8* FoundAddress = NULL;
         Print(L"Signature not found in the specified memory range.\n");
     }
 
-        GlobalSystemTable->ConOut->OutputString(GlobalSystemTable->ConOut, L"Press any key to continue...\r\n");
 
-    while (GlobalSystemTable->ConIn->ReadKeyStroke(GlobalSystemTable->ConIn, &Key) == EFI_NOT_READY) {
-        
+
+    while (uefi_call_wrapper(GlobalSystemTable->ConIn->ReadKeyStroke, 2, GlobalSystemTable->ConIn, &Key)) {
     }
-    
-    GlobalSystemTable->ConOut->OutputString(GlobalSystemTable->ConOut, L"Key pressed! Exiting...\r\n");
 
     return OriginalExitBootServices(ImageHandle, MapKey);
 }
