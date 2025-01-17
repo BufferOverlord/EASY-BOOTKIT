@@ -41,14 +41,18 @@ static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN Ma
     UINT8* FoundAddress = NULL;
     EFI_INPUT_KEY Key;
     FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &FoundAddress);
+    ST->ConOut->ClearScreen(ST->ConOut);
 
     if (FoundAddress != NULL) {
+        ST->ConOut->SetAttribute(ST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLUE);
         Print(L"Signature found at address: %p\n", FoundAddress);
+
     }
     else {
-        Print(L"Signature not found in the specified memory range.\n");
-    }
+        ST->ConOut->SetAttribute(ST->ConOut, EFI_WHITE | EFI_BACKGROUND_RED);
+        Print(L"Signature not found in memory.\n");
 
+    }
 
 
     while (uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &Key)) {
