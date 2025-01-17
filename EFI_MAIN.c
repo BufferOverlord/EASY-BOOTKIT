@@ -4,6 +4,7 @@
 #define SEARCH_BASE (UINT8*)0x0
 #define SEARCH_SIZE 0x100000000
 #define SIGNATURE_SIZE (sizeof(Signature2))
+EFI_PHYSICAL_ADDRESS gImageBaseAddress = 0;
 EFI_SYSTEM_TABLE* ST = NULL;
 EFI_STATUS Status;
 const UINT8 Signature2[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1 };
@@ -42,6 +43,7 @@ static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN Ma
     EFI_INPUT_KEY Key;
     FindSignature(SEARCH_BASE, SEARCH_SIZE, Signature2, SIGNATURE_SIZE, &FoundAddress);
     ST->ConOut->ClearScreen(ST->ConOut);
+    Print(L"Base Image Address: %p\n", gImageBaseAddress);
 
     if (FoundAddress != NULL) {
         ST->ConOut->SetAttribute(ST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLUE);
@@ -90,6 +92,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
         return status;
     }
     LoadedImage->Unload = (EFI_IMAGE_UNLOAD)efi_unload;
+    gImageBaseAddress = (EFI_PHYSICAL_ADDRESS)ImageHandle;
 
     OriginalExitBootServices = gBS->ExitBootServices;
     gBS->ExitBootServices = HookedExitBootServices;
