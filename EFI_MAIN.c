@@ -46,11 +46,13 @@ static EFI_STATUS EFIAPI HookedExitBootServices(EFI_HANDLE ImageHandle, UINTN Ma
     if (FoundAddress != NULL) {
         ST->ConOut->SetAttribute(ST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLUE);
         Print(L"Signature found at address: %p\n", FoundAddress);
+        Print(L"Press any key to exit.\n");
 
     }
     else {
         ST->ConOut->SetAttribute(ST->ConOut, EFI_WHITE | EFI_BACKGROUND_RED);
         Print(L"Signature not found in memory.\n");
+        Print(L"Press any key to exit.\n");
 
     }
 
