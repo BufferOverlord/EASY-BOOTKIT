@@ -1,13 +1,19 @@
 #include <efi.h>
 #include <efilib.h>
 #define ENTRY_POINT efi_main
-EFI_SYSTEM_TABLE* ST = NULL;
-EFI_STATUS Status;
 #define SEARCH_BASE (UINT8*)0x0
 #define SEARCH_SIZE 0x100000000
+#define SIGNATURE_SIZE (sizeof(Signature2))
+EFI_SYSTEM_TABLE* ST = NULL;
+EFI_STATUS Status;
 const UINT8 Signature2[] = { 0x48, 0xB8, 0x77, 0xBE, 0x9F, 0x1A, 0x2F, 0xDD, 0x24, 0x06, 0x49, 0xF7, 0xE1 };
 
-#define SIGNATURE_SIZE (sizeof(Signature2))
+typedef struct _DummyProtocalData {
+    UINTN blank;
+} DummyProtocalData;
+
+
+
 
 void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
     for (UINT8* ptr = MemoryBase; ptr < MemoryBase + MemorySize - SignatureSize; ++ptr) {
@@ -26,10 +32,6 @@ static EFI_STATUS EFIAPI efi_unload(IN EFI_HANDLE ImageHandle) {
 
     return EFI_ACCESS_DENIED;
 }
-
-typedef struct _DummyProtocalData {
-    UINTN blank;
-} DummyProtocalData;
 
 typedef EFI_STATUS(EFIAPI* EFI_EXIT_BOOT_SERVICES)(EFI_HANDLE, UINTN);
 static EFI_EXIT_BOOT_SERVICES OriginalExitBootServices = NULL;
