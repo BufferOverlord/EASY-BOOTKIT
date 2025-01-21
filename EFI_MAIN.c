@@ -14,6 +14,15 @@ typedef struct _DummyProtocalData {
 } DummyProtocalData;
 
 
+void copy_data(void *dest, const void *src, unsigned int size) {
+    unsigned char *d = (unsigned char *)dest;
+    const unsigned char *s = (const unsigned char *)src;
+
+    for (unsigned int i = 0; i < size; i++) {
+        d[i] = s[i];
+    }
+}
+
 
 
 void FindSignature(UINT8* MemoryBase, UINTN MemorySize, const UINT8* Signature, UINTN SignatureSize, UINT8** FoundAddress) {
