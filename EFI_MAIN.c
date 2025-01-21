@@ -14,15 +14,6 @@ typedef struct _DummyProtocalData {
 } DummyProtocalData;
 
 
-void copy_address(void *dest, const void *src, unsigned int size) {
-    unsigned char *d = (unsigned char *)dest;
-    const unsigned char *s = (const unsigned char *)src;
-
-    while (size--) {
-        *d++ = *s++;  // Flyt data byte-for-byte fra src til dest
-    }
-}
-
 
 
 
